@@ -2,17 +2,18 @@ const blogsRouter = require('express').Router();
 const Blog = require('./blog.model');
 const User = require('../users/user.model');
 const ErrorGenerator = require('../../utils/error_generator');
+const { userExtractor } = require('../../utils/auth_middleware');
 
 blogsRouter.get("/", async (request, response) => {
   const blogs = await Blog.find({}).populate('user', { username: 1, name: 1, _id: 1 });
   return response.json(blogs);
 });
 
-blogsRouter.post("/", async (request, response) => {
+blogsRouter.post("/", userExtractor, async (request, response) => {
     const blog = new Blog(request.body);
-    blog.user = '611c1201fc7f9d379822fd82';
+    blog.user = request.user._id;
     const savedBlog = await blog.save();
-    const user = await User.findById('611c1201fc7f9d379822fd82');
+    const user = await User.findById(request.user._id);
     user.blogs = user.blogs.concat(savedBlog._id);
     await user.save();
     response.status(201).json(savedBlog);
